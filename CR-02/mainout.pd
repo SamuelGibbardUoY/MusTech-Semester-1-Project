@@ -1,0 +1,15 @@
+#N canvas 0 38 450 309 12;
+#X obj 150 200 dac~;
+#X obj 100 150 *~;
+#X obj 200 150 *~;
+#X text 100 80 L channel;
+#X text 200 80 R channel;
+#X obj 300 100 r main_volume;
+#X obj 100 100 inlet~ L;
+#X obj 200 100 inlet~ R;
+#X connect 1 0 0 0;
+#X connect 2 0 0 1;
+#X connect 5 0 1 1;
+#X connect 5 0 2 1;
+#X connect 6 0 1 0;
+#X connect 7 0 2 0;
