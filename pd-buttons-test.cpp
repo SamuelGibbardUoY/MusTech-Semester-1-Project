@@ -1,4 +1,7 @@
 #include "mbed.h"
+#include "TextLCD.h"
+
+TextLCD lcd(D1, D5, D6, D7, D8, D9, TextLCD::LCD16x2);
 
 InterruptIn b1(D2, PullUp);
 InterruptIn b2(D3, PullUp);
@@ -116,5 +119,11 @@ int main() {
     b2_thread.start(b2_func);
     b3_thread.start(b3_func);
 
-    while (true) { ThisThread::sleep_for(1s); }
+    lcd.cls();
+    lcd.locate(0, 0);
+    lcd.printf("PATHWAYS");
+    lcd.locate(0, 1);
+    lcd.printf("Hello, World!");
+
+    while (true);
 }
