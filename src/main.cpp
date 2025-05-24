@@ -65,7 +65,7 @@ void select_option() {
 
         switch (choice_index) {
             case 0: playSample(0, 2, 1); break; // id = 0, volume = 2 (medium), pan = 1 (centre)
-            case 1: playNarration(1); break; // id = 1
+            case 1: playNarration(0); break; // id = 0
             case 2: playMusic(0); break; // id = 0
             case 3: stopMusic(); break;
         }
@@ -73,10 +73,11 @@ void select_option() {
 }
 
 int main() {
+    playMusic(0); // id = 0
     lcd.cls();
     lcd.locate(0, 0);
-    lcd.printf("PATHWAYS"); // startup screen
-    thread_sleep_for(2000);
+    lcd.printf("PATHWAYS");
+    thread_sleep_for(5000);
 
     b1_thread.start(scroll_left);
     b2_thread.start(scroll_right);
