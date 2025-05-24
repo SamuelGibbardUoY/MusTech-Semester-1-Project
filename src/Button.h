@@ -4,7 +4,7 @@
 class Button
 {
     InterruptIn _button;
-    Semaphore * _semaphore;
+    Semaphore* _semaphore;
     chrono::milliseconds _debounce_time;
     Kernel::Clock::time_point _last_press;
 
@@ -18,8 +18,8 @@ class Button
 
     public:
 
-    Button(PinName pin, Semaphore * semaphore, chrono::milliseconds debounce_time = 50ms)
-        : _button(pin), _semaphore(semaphore), _debounce_time(debounce_time), _last_press(0)
+    Button(PinName pin, Semaphore* semaphore, chrono::milliseconds debounce_time = 50ms)
+        : _button(pin), _semaphore(semaphore), _debounce_time(debounce_time), _last_press(Kernel::Clock::now())
     {
         _button.fall(callback(this, &Button::on_fall));
         _button.mode(PullUp);

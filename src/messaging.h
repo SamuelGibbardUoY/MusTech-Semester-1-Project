@@ -19,24 +19,8 @@ inline void sendMessage(uint8_t status, uint8_t data) {
     fflush(stdout);
 }
 
-inline void playSynth(uint8_t id, int volume, int pan) {
-    uint8_t status[8] = {0};
-
-    switch (volume) {
-        case 0: break;
-        case 1: status[4] = 1; break;
-        case 2: status[3] = 1; break;
-        case 3: status[3] = 1; status[4] = 1; break;
-    }
-
-    switch (pan) {
-        case 0: break;
-        case 1: status[6] = 1; break;
-        case 2: status[5] = 1; break;
-        case 3: status[5] = 1; status[6] = 1;
-    }
-
-    sendMessage(concat(status), id);
+inline void playSynth(uint8_t id) {
+    sendMessage(0b00000000, id);
 }
 
 inline void playSample(uint8_t id, int volume, int pan) {

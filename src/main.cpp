@@ -5,52 +5,87 @@
 
 TextLCD lcd(D1, D5, D6, D7, D8, D9, TextLCD::LCD16x2);
 
-Semaphore b1_sem(0);
-Semaphore b2_sem(0);
-Semaphore b3_sem(0);
+Semaphore semaphore_1(0);
+Semaphore semaphore_2(0);
+Semaphore semaphore_3(0);
 
-Button b1(D2, &b1_sem);
-Button b2(D3, &b2_sem);
-Button b3(D4, &b3_sem);
+Button left(D2, &semaphore_1);
+Button right(D3, &semaphore_2);
+Button select(D4, &semaphore_3);
 
 Thread b1_thread;
 Thread b2_thread;
 Thread b3_thread;
 
-void printToLine(const char * text, int row) {
-    if (row == 0) lcd.locate(0, 0); else lcd.locate(0, 1);
-    lcd.printf("%s", text);
-}
+Mutex choice_mutex;
 
-void b1_func() {
+// need to pad text with whitespaces to change whole line
+const char* options_text[] = {"Play Sample     ", "Play Narration  ", "Play Music      ", "Stop Music      ", NULL};
+int choice_index = 0;
+const char* choice = options_text[choice_index];
+
+void scroll_left() {
     while (true) {
-        b1_sem.acquire();
-        playSample(0, 2, 1); // id = 0, volume = 2 (medium), pan = 1 (centre)
+        semaphore_1.acquire();
+
+        choice_mutex.lock();
+        if (choice_index > 0) {
+            playSynth(1); // id = 1
+            choice_index--;
+        }
+
+        choice = options_text[choice_index];
+        lcd.locate(0, 1);
+        lcd.printf("%s", choice);
+        choice_mutex.unlock();
     }
 }
 
-void b2_func() {
+void scroll_right() {
     while (true) {
-        b2_sem.acquire();
-        playMusic(0); // id = 0
+        semaphore_2.acquire();
+
+        choice_mutex.lock();
+        if (options_text[choice_index + 1] != NULL) {
+            playSynth(1); // id = 1
+            choice_index++;
+        }
+
+        choice = options_text[choice_index];
+        lcd.locate(0, 1);
+        lcd.printf("%s", choice);
+        choice_mutex.unlock();
     }
 }
 
-void b3_func() {
+void select_option() {
     while (true) {
-        b3_sem.acquire();
-        stopMusic();
+        semaphore_3.acquire();
+        playSynth(2); // id = 2
+
+        switch (choice_index) {
+            case 0: playSample(0, 2, 1); break; // id = 0, volume = 2 (medium), pan = 1 (centre)
+            case 1: playNarration(1); break; // id = 1
+            case 2: playMusic(0); break; // id = 0
+            case 3: stopMusic(); break;
+        }
     }
 }
 
 int main() {
-    b1_thread.start(b1_func);
-    b2_thread.start(b2_func);
-    b3_thread.start(b3_func);
-
     lcd.cls();
-    printToLine("PATHWAYS", 0);
-    printToLine("Hello, World!", 1);
+    lcd.locate(0, 0);
+    lcd.printf("PATHWAYS"); // startup screen
+    thread_sleep_for(2000);
+
+    b1_thread.start(scroll_left);
+    b2_thread.start(scroll_right);
+    b3_thread.start(select_option);
+
+    lcd.locate(0, 0);
+    lcd.printf("Scenario Name"); // top line
+    lcd.locate(0, 1);
+    lcd.printf("%s", choice); // bottom line
 
     while (true);
 }
