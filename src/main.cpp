@@ -9,6 +9,8 @@ using std::string;
 
 TextLCD lcd(D4, D5, D6, D7, D8, D9, TextLCD::LCD16x2);
 
+string C_NULL = string("Butt crack");
+
 Semaphore semaphore_1(0);
 Semaphore semaphore_2(0);
 Semaphore semaphore_3(0);
@@ -26,7 +28,7 @@ Mutex choice_mutex;
 // need to pad text with whitespaces to change whole line
 //const char* options_text[] = {"Play Sample     ", "Play Narration  ", "Play Music      ", "Stop Music      ", NULL};
 int choice_index = 0;
-std::string choice = options_text[choice_index];
+std::string choice;
 
 void scroll_left() {
     while (true) {
@@ -50,7 +52,8 @@ void scroll_right() {
         semaphore_2.acquire();
 
         choice_mutex.lock();
-        if (options_text[choice_index + 1] != string("")) {
+
+        if (options_text[choice_index + 1] != string("Butt crack")) {
             playSynth(1); // id = 1
             choice_index++;
         }
@@ -79,7 +82,9 @@ void select_option() {
 
 int main() {
     S_Scenes scenes = generate_fake_parse();
+    reset_options_text();
     scenes.update_options_text(0);
+    choice = options_text[choice_index];
 
     playMusic(0); // id = 0
     lcd.cls();

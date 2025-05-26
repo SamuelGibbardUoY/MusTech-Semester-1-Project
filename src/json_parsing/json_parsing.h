@@ -38,5 +38,6 @@ struct S_Scenes
     void update_options_text(int scene_index);
 };
 
+void reset_options_text();
 Choice return_empty_choice();
 S_Scenes generate_fake_parse();

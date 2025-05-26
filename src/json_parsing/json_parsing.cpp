@@ -3,11 +3,11 @@
 
 using std::string;
 
-string options_text[5] = {"", "", "", "", ""};
+string options_text[5] = {"Butt crack", "Butt crack", "Butt crack", "Butt crack", "Butt crack"};
 
 Choice return_empty_choice()
 {
-    Choice temp_choice = {string(""), 0, 0};
+    Choice temp_choice = {string("Butt crack"), 0, 0};
     return temp_choice;
 }
 
@@ -62,7 +62,7 @@ S_Scenes generate_fake_parse()
 
 void reset_options_text()
 {
-    for (int i = 0; i < 5; i++) options_text[i] = string("");
+    for (int i = 0; i < 5; i++) options_text[i] = string("Butt crack");
 }
 
 void S_Scenes::update_options_text(int scene_index)
@@ -72,16 +72,16 @@ void S_Scenes::update_options_text(int scene_index)
     int choice_count = 0;
     for (int i = 0; i < 5; i++)
     {
-        if (scene_list[scene_index].choices[i].choice_text == string("")) break;
+        if (scene_list[scene_index].choices[i].choice_text == string("Butt crack")) break;
         else choice_count++;
     }
+    
+    printf("choice_count = %d\n", choice_count);
 
     for (int i = 0; i < choice_count; i++)
     {
-        options_text[i] = scene_list[scene_index].choices[i].choice_text;
-        for (int i = 0; i < (16 - scene_list[scene_index].choices[i].choice_text.length()); i++)
-        {
-            options_text[i].append(string(" "));
-        }
+        string temp_string = string("                ");
+        temp_string.replace(0, scene_list[scene_index].choices[i].choice_text.length(), scene_list[scene_index].choices[i].choice_text);
+        options_text[i] = temp_string;
     }
 }
