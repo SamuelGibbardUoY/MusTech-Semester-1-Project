@@ -1,6 +1,10 @@
 #pragma once
 #include <string>
 
+using std::string;
+
+extern string options_text[5];
+
 struct Sample_Trigger
 {
     int volume;
@@ -10,14 +14,14 @@ struct Sample_Trigger
 
 struct Choice
 {
-    std::string choice_text;
+    string choice_text;
     int choice_narration_id;
     int following_scene;
 };
 
 struct Scene_Template
 {
-    std::string scene_text;
+    string scene_text;
     int scene_number;
 
     int music_trigger_id;
@@ -27,9 +31,12 @@ struct Scene_Template
     Choice choices[4];
 };
 
-struct Scenes
+struct S_Scenes
 {
     Scene_Template scene_list[3];
+
+    void update_options_text(int scene_index);
 };
 
-Scenes generate_fake_parse();
+Choice return_empty_choice();
+S_Scenes generate_fake_parse();

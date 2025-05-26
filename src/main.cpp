@@ -2,16 +2,20 @@
 #include "TextLCD.h"
 #include "Button.h"
 #include "messaging.h"
+#include "json_parsing.h"
+#include <string>
 
-TextLCD lcd(D1, D5, D6, D7, D8, D9, TextLCD::LCD16x2);
+using std::string;
+
+TextLCD lcd(D4, D5, D6, D7, D8, D9, TextLCD::LCD16x2);
 
 Semaphore semaphore_1(0);
 Semaphore semaphore_2(0);
 Semaphore semaphore_3(0);
 
-Button left(D2, &semaphore_1);
-Button right(D3, &semaphore_2);
-Button select(D4, &semaphore_3);
+Button left(D0, &semaphore_1);
+Button right(D1, &semaphore_2);
+Button select(D2, &semaphore_3);
 
 Thread b1_thread;
 Thread b2_thread;
@@ -20,9 +24,9 @@ Thread b3_thread;
 Mutex choice_mutex;
 
 // need to pad text with whitespaces to change whole line
-const char* options_text[] = {"Play Sample     ", "Play Narration  ", "Play Music      ", "Stop Music      ", NULL};
+//const char* options_text[] = {"Play Sample     ", "Play Narration  ", "Play Music      ", "Stop Music      ", NULL};
 int choice_index = 0;
-const char* choice = options_text[choice_index];
+std::string choice = options_text[choice_index];
 
 void scroll_left() {
     while (true) {
@@ -36,7 +40,7 @@ void scroll_left() {
 
         choice = options_text[choice_index];
         lcd.locate(0, 1);
-        lcd.printf("%s", choice);
+        lcd.printf("%s", choice.c_str());
         choice_mutex.unlock();
     }
 }
@@ -46,14 +50,14 @@ void scroll_right() {
         semaphore_2.acquire();
 
         choice_mutex.lock();
-        if (options_text[choice_index + 1] != NULL) {
+        if (options_text[choice_index + 1] != string("")) {
             playSynth(1); // id = 1
             choice_index++;
         }
 
         choice = options_text[choice_index];
         lcd.locate(0, 1);
-        lcd.printf("%s", choice);
+        lcd.printf("%s", choice.c_str());
         choice_mutex.unlock();
     }
 }
@@ -73,6 +77,9 @@ void select_option() {
 }
 
 int main() {
+    S_Scenes scenes = generate_fake_parse();
+    scenes.update_options_text(0);
+
     playMusic(0); // id = 0
     lcd.cls();
     lcd.locate(0, 0);
@@ -86,7 +93,7 @@ int main() {
     lcd.locate(0, 0);
     lcd.printf("Scenario Name"); // top line
     lcd.locate(0, 1);
-    lcd.printf("%s", choice); // bottom line
+    lcd.printf("%s", choice.c_str()); // bottom line
 
     while (true);
 }
