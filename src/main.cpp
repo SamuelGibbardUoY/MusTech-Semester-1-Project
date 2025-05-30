@@ -1,52 +1,89 @@
 #include "mbed.h"
+#include <string>
+#include <vector>
+
 #include "TextLCD.h"
 #include "Button.h"
+#include "game.h"
 #include "messaging.h"
-#include "json_parsing.h"
-#include <string>
 
 using std::string;
+using std::vector;
 
-TextLCD lcd(D4, D5, D6, D7, D8, D9, TextLCD::LCD16x2);
-
-string C_NULL = string("Butt crack");
+TextLCD lcd(D5, D6, D7, D8, D9, D10, TextLCD::LCD16x2);
 
 Semaphore semaphore_1(0);
 Semaphore semaphore_2(0);
 Semaphore semaphore_3(0);
 
-Button left(D0, &semaphore_1);
-Button right(D1, &semaphore_2);
-Button select(D2, &semaphore_3);
+Button left(D2, &semaphore_1);
+Button right(D3, &semaphore_2);
+Button select(D4, &semaphore_3);
 
 Thread b1_thread;
 Thread b2_thread;
 Thread b3_thread;
 
-Mutex choice_mutex;
+Mutex mutex;
 
-S_Scenes scenes = generate_fake_parse();
-int current_scene = 0;
+vector<Scene> scene_list;
+int current_scene_number = 0;
+Scene current_scene;
 
-// need to pad text with whitespaces to change whole line
-//const char* options_text[] = {"Play Sample     ", "Play Narration  ", "Play Music      ", "Stop Music      ", NULL};
-int choice_index = 0;
-std::string choice;
+vector<string> options_text; // options to be displayed
+int choice_index = 0; // index of current displayed option
+
+void update_options_text() {
+/*
+Clear the options to be displayed and replace with the options for the current scene
+*/
+    options_text.clear();
+
+    for (Choice i : current_scene.options) {
+        options_text.push_back(i.text);
+    }
+}
+
+void LCDPrint(int line, const char *text) {
+    lcd.locate(0, line);
+    lcd.printf("                ");
+    lcd.locate(0, line);
+    lcd.printf("%s", text);
+}
+
+void trigger_sounds() {
+/*
+Trigger samples, music and narration for the current scene
+*/ 
+    if (current_scene.music_id == -2) {
+        stopMusic();
+    }
+    else if (current_scene.music_id != -1) { // if we want to change the music
+        stopMusic();
+        thread_sleep_for(1000); // wait for fadeout
+        playMusic(current_scene.music_id);
+    }
+
+    playSample(current_scene.sample.id, current_scene.sample.volume, current_scene.sample.pan);
+    thread_sleep_for(3000);
+    playNarration(current_scene.narration_id);
+}
 
 void scroll_left() {
     while (true) {
         semaphore_1.acquire();
 
-        choice_mutex.lock();
-        if (choice_index > 0) {
-            playSynth(1); // id = 1
+        mutex.lock();
+
+        if (choice_index > 0) { // if we're not at the start of the list
+            playSynth(1); // scroll sound (id = 1)
             choice_index--;
+
+            LCDPrint(1, options_text[choice_index].c_str());
+            playNarration(current_scene.options[choice_index].narration_id);
         }
 
-        choice = options_text[choice_index];
-        lcd.locate(0, 1);
-        lcd.printf("%s", choice.c_str());
-        choice_mutex.unlock();
+        mutex.unlock();
     }
 }
 
@@ -54,71 +91,65 @@ void scroll_right() {
     while (true) {
         semaphore_2.acquire();
 
-        choice_mutex.lock();
+        mutex.lock();
 
-        if (options_text[choice_index + 1] != string("Butt crack")) {
-            playSynth(1); // id = 1
+        if ((choice_index + 1) < options_text.size()) { // if we're not at the end of the list
+            playSynth(1); // scroll sound (id = 1)
             choice_index++;
+
+            LCDPrint(1, options_text[choice_index].c_str());
+            playNarration(current_scene.options[choice_index].narration_id);
         }
 
-        choice = options_text[choice_index];
-        lcd.locate(0, 1);
-        lcd.printf("%s", choice.c_str());
-        choice_mutex.unlock();
+        mutex.unlock();
     }
 }
 
 void select_option() {
     while (true) {
         semaphore_3.acquire();
-        playSynth(2); // id = 2
 
-        choice_mutex.lock();
+        mutex.lock();
 
-        // Update the list of choices
-        current_scene = scenes.scene_list[current_scene].choices[choice_index].following_scene;
-        scenes.update_options_text(current_scene);
+        playSynth(2); // select sound (id = 2)
 
+        // move to the next scene
+        current_scene_number = current_scene.options[choice_index].go_to;
+        current_scene = scene_list[current_scene_number];
+        update_options_text();
         choice_index = 0;
 
-        switch (choice_index) {
-            case 0: playSample(0, 2, 1); break; // id = 0, volume = 2 (medium), pan = 1 (centre)
-            case 1: playNarration(0); break; // id = 0
-            case 2: playMusic(0); break; // id = 0
-            case 3: stopMusic(); break;
-        }
+        LCDPrint(0, current_scene.text.c_str());
+        LCDPrint(1, options_text[choice_index].c_str());
+        trigger_sounds();
 
-        // Refresh screen
-        lcd.locate(0, 0);
-        lcd.printf("                ");
-        lcd.locate(0, 0);
-        lcd.printf("%s", scenes.scene_list[current_scene].scene_text.c_str());
-        lcd.locate(0, 1);
-        lcd.printf("                ");
-        lcd.locate(0, 1);
-        lcd.printf("%s", options_text[choice_index].c_str());
-        choice_mutex.unlock();
+        mutex.unlock();
     }
 }
 
 int main() {
-    scenes.update_options_text(current_scene);
-    choice = options_text[choice_index];
+    mutex.lock();
 
-    playMusic(0); // id = 0
+    playMusic(0); // startup sound (id = 0)
     lcd.cls();
-    lcd.locate(0, 0);
-    lcd.printf("PATHWAYS");
-    thread_sleep_for(5/*000*/);
+    LCDPrint(0, "PATHWAYS");
+    thread_sleep_for(5000);
+
+    scene_list = get_scenes();
+    current_scene = scene_list[current_scene_number];
+
+    update_options_text();
+
+    lcd.cls();
+    LCDPrint(0, current_scene.text.c_str());
+    LCDPrint(1, options_text[choice_index].c_str());
+    trigger_sounds();
 
     b1_thread.start(scroll_left);
     b2_thread.start(scroll_right);
     b3_thread.start(select_option);
 
-    lcd.locate(0, 0);
-    lcd.printf("%s", scenes.scene_list[current_scene].scene_text.c_str()); // top line
-    lcd.locate(0, 1);
-    lcd.printf("%s", options_text[choice_index].c_str());
+    mutex.unlock();
 
     while (true);
 }
