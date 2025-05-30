@@ -33,7 +33,7 @@ struct Scene_Template
 
 struct S_Scenes
 {
-    Scene_Template scene_list[3];
+    Scene_Template scene_list[25];
 
     void update_options_text(int scene_index);
 };

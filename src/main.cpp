@@ -25,6 +25,9 @@ Thread b3_thread;
 
 Mutex choice_mutex;
 
+S_Scenes scenes = generate_fake_parse();
+int current_scene = 0;
+
 // need to pad text with whitespaces to change whole line
 //const char* options_text[] = {"Play Sample     ", "Play Narration  ", "Play Music      ", "Stop Music      ", NULL};
 int choice_index = 0;
@@ -70,36 +73,52 @@ void select_option() {
         semaphore_3.acquire();
         playSynth(2); // id = 2
 
+        choice_mutex.lock();
+
+        // Update the list of choices
+        current_scene = scenes.scene_list[current_scene].choices[choice_index].following_scene;
+        scenes.update_options_text(current_scene);
+
+        choice_index = 0;
+
         switch (choice_index) {
             case 0: playSample(0, 2, 1); break; // id = 0, volume = 2 (medium), pan = 1 (centre)
             case 1: playNarration(0); break; // id = 0
             case 2: playMusic(0); break; // id = 0
             case 3: stopMusic(); break;
         }
+
+        // Refresh screen
+        lcd.locate(0, 0);
+        lcd.printf("                ");
+        lcd.locate(0, 0);
+        lcd.printf("%s", scenes.scene_list[current_scene].scene_text.c_str());
+        lcd.locate(0, 1);
+        lcd.printf("                ");
+        lcd.locate(0, 1);
+        lcd.printf("%s", options_text[choice_index].c_str());
+        choice_mutex.unlock();
     }
 }
-// I sharted my pants
 
 int main() {
-    S_Scenes scenes = generate_fake_parse();
-    reset_options_text();
-    scenes.update_options_text(0);
+    scenes.update_options_text(current_scene);
     choice = options_text[choice_index];
 
     playMusic(0); // id = 0
     lcd.cls();
     lcd.locate(0, 0);
     lcd.printf("PATHWAYS");
-    thread_sleep_for(5000);
+    thread_sleep_for(5/*000*/);
 
     b1_thread.start(scroll_left);
     b2_thread.start(scroll_right);
     b3_thread.start(select_option);
 
     lcd.locate(0, 0);
-    lcd.printf("Scenario Name"); // top line
+    lcd.printf("%s", scenes.scene_list[current_scene].scene_text.c_str()); // top line
     lcd.locate(0, 1);
-    lcd.printf("%s", choice.c_str()); // bottom line
+    lcd.printf("%s", options_text[choice_index].c_str());
 
     while (true);
 }
